@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Gauge, Radio, TimerReset } from "lucide-react";
 import { DriverSwitch } from "@/components/race/DriverSwitch";
 import { useTelemetry } from "@/lib/telemetry/useTelemetry";
-import teamLogo from "@/assets/team-logo.svg.asset.json";
+import teamLogo from "@/assets/team-logo.svg";
 
 export const Route = createFileRoute("/")({ head: () => ({ meta: [
   { title: "SlipStream-X — Live Race Engineering" }, { name: "description", content: "An interactive four-tire race-engineering simulation with live telemetry, pit strategy and synchronized track state." },
@@ -13,7 +13,7 @@ function Landing() { const { driver } = useTelemetry(4); return <div className="
   <section className="relative min-h-[78vh] overflow-hidden bg-carbon px-6 py-16 text-background md:px-12">
     <div className="race-stage absolute inset-0 opacity-30" aria-hidden />
     <div className="relative mx-auto flex max-w-[1400px] flex-col justify-between gap-16">
-      <div className="flex items-center gap-4"><img src={teamLogo.url} alt="Team logo" width={56} height={51} className="h-14 w-auto" /><span className="h-1 w-14 bg-primary"/><span className="font-display text-sm font-semibold">RACE ENGINEERING DEMONSTRATION</span></div>
+      <div className="flex items-center gap-4"><img src={teamLogo} alt="Team logo" width={56} height={51} className="h-14 w-auto" /><span className="h-1 w-14 bg-primary"/><span className="font-display text-sm font-semibold">RACE ENGINEERING DEMONSTRATION</span></div>
       <div className="max-w-5xl"><p className="font-display text-xl font-semibold text-primary">SLIPSTREAM-X</p><h1 className="mt-4 max-w-4xl font-display text-5xl font-bold leading-[1.04] md:text-7xl">Decode grip.<br/>Understand behaviour.<br/><span className="text-primary">Make the pit decision.</span></h1><p className="mt-7 max-w-2xl text-lg text-background/70">One car, four tires and thirty-two physical channels working as one live race session—from the first lap to the next tire set.</p>
         <div className="mt-9 max-w-xl rounded-3xl border border-background/20 bg-background/5 p-5">
           <span className="label-xs text-primary">Who is driving</span>
