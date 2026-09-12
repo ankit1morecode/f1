@@ -7,7 +7,7 @@ import { useTelemetry } from "@/lib/telemetry/useTelemetry";
 import { cn } from "@/lib/utils";
 import { PROTOCOL_VERSION } from "@/lib/telemetry/types";
 import { DriverBadge } from "@/components/race/DriverSwitch";
-import teamLogo from "@/assets/team-logo.svg.asset.json";
+import teamLogo from "@/assets/team-logo.svg";
 
 const NAV = [
   { to: "/live", label: "Live Race" },
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3.5">
           <Link to="/" className="group flex items-center gap-2.5" title="Back to the start page">
-            <img src={teamLogo.url} alt="Team logo" width={36} height={33} className="h-9 w-auto" />
+            <img src={teamLogo} alt="Team logo" width={36} height={33} className="h-9 w-auto" />
             <span className="font-display text-base font-semibold tracking-tight">
               SlipStream<span className="text-primary">-X</span>
             </span>
