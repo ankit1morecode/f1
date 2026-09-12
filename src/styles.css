@@ -1,0 +1,253 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * SlipStream-X design system — clean white + signal red.
+ * All colors in oklch. Semantic tokens only; never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-display: "Oxanium", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-measured: var(--measured);
+  --color-derived: var(--derived);
+  --color-inferred: var(--inferred);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-crit: var(--crit);
+  --color-stale: var(--stale);
+  --color-carbon: var(--carbon);
+  --color-carbon-soft: var(--carbon-soft);
+}
+
+:root {
+  --radius: 0.95rem;
+  --background: oklch(0.985 0.004 30);
+  --foreground: oklch(0.24 0.012 25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.012 25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.012 25);
+  --primary: oklch(0.56 0.21 27);
+  --primary-foreground: oklch(0.99 0.004 40);
+  --secondary: oklch(0.955 0.008 25);
+  --secondary-foreground: oklch(0.32 0.02 25);
+  --muted: oklch(0.955 0.008 25);
+  --muted-foreground: oklch(0.5 0.02 28);
+  --accent: oklch(0.94 0.02 27);
+  --accent-foreground: oklch(0.42 0.12 27);
+  --destructive: oklch(0.56 0.22 27);
+  --destructive-foreground: oklch(0.99 0.004 40);
+  --border: oklch(0.905 0.01 25);
+  --input: oklch(0.905 0.01 25);
+  --ring: oklch(0.56 0.21 27);
+  /* data-provenance tokens */
+  --measured: oklch(0.28 0.015 30);
+  --derived: oklch(0.6 0.13 45);
+  --inferred: oklch(0.56 0.21 27);
+  /* severity */
+  --ok: oklch(0.62 0.14 150);
+  --warn: oklch(0.7 0.16 75);
+  --crit: oklch(0.56 0.22 27);
+  --stale: oklch(0.6 0.015 30);
+  --carbon: oklch(0.19 0.01 25);
+  --carbon-soft: oklch(0.29 0.012 25);
+}
+
+.dark {
+  --background: oklch(0.17 0.008 25);
+  --foreground: oklch(0.95 0.006 40);
+  --card: oklch(0.215 0.01 25);
+  --card-foreground: oklch(0.95 0.006 40);
+  --popover: oklch(0.215 0.01 25);
+  --popover-foreground: oklch(0.95 0.006 40);
+  --primary: oklch(0.62 0.22 27);
+  --primary-foreground: oklch(0.99 0.004 40);
+  --secondary: oklch(0.27 0.014 25);
+  --secondary-foreground: oklch(0.93 0.008 40);
+  --muted: oklch(0.27 0.014 25);
+  --muted-foreground: oklch(0.72 0.015 30);
+  --accent: oklch(0.32 0.045 27);
+  --accent-foreground: oklch(0.9 0.05 30);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.99 0.004 40);
+  --border: oklch(0.31 0.012 25);
+  --input: oklch(0.31 0.012 25);
+  --ring: oklch(0.62 0.22 27);
+  --measured: oklch(0.9 0.008 40);
+  --derived: oklch(0.74 0.13 55);
+  --inferred: oklch(0.66 0.2 27);
+  --ok: oklch(0.7 0.15 150);
+  --warn: oklch(0.78 0.15 78);
+  --crit: oklch(0.64 0.22 27);
+  --stale: oklch(0.6 0.015 30);
+  --carbon: oklch(0.13 0.008 25);
+  --carbon-soft: oklch(0.24 0.01 25);
+}
+
+@utility race-stage {
+  background-image:
+    linear-gradient(var(--color-carbon-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-carbon-soft) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    background-image:
+      radial-gradient(70% 50% at 15% -15%, oklch(0.7 0.12 25 / 0.08), transparent 65%),
+      radial-gradient(50% 40% at 95% 105%, oklch(0.7 0.1 25 / 0.05), transparent 70%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0;
+  }
+}
+
+@utility panel {
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.04),
+    0 12px 32px -24px oklch(0.3 0.05 27 / 0.25);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+@utility panel-accent {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 1.25rem;
+    height: 2px;
+    width: 2.25rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-primary), transparent);
+    opacity: 0.7;
+  }
+}
+
+@utility hairline {
+  background: linear-gradient(90deg, var(--color-border), transparent);
+  height: 1px;
+}
+
+/* Friendly small label: readable sentence case, no shouty tracking. */
+@utility label-xs {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--color-muted-foreground);
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+
+@utility story-link {
+  position: relative;
+  display: inline-block;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1.5px;
+    background: var(--color-primary);
+    transform: scaleX(0);
+    transform-origin: bottom left;
+    transition: transform 300ms ease;
+  }
+
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pulse-crit {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.62 0.25 25 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px oklch(0.62 0.25 25 / 0);
+  }
+}
+
+@utility crit-pulse {
+  animation: pulse-crit 1.6s ease-out infinite;
+}
+
+::selection {
+  background: oklch(0.58 0.22 25 / 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
