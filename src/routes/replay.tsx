@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GripCore } from "@/components/telemetry/GripCore";
 import { Plot } from "@/components/telemetry/Plot";
 import { VehicleZones } from "@/components/telemetry/VehicleZones";
 import { Panel, Stat } from "@/components/ui/Panel";
-import { deleteSession, listSessions } from "@/lib/telemetry/engine";
+import { deleteSession, listSessions, loadSession, type RunSummary } from "@/lib/telemetry/engine";
 import type { RecordedSession } from "@/lib/telemetry/types";
 import { cn } from "@/lib/utils";
 
@@ -15,13 +15,12 @@ export const Route = createFileRoute("/replay")({
       {
         name: "description",
         content:
-          "Load recorded SlipStream-X runs without hardware: play, pause and seek a synchronized timeline with grip inference, dynamics and event markers.",
+          "Load runs stored in MongoDB: play, pause and seek a synchronized timeline with grip inference, dynamics and event markers.",
       },
       { property: "og:title", content: "Session Replay — SlipStream-X" },
       {
         property: "og:description",
-        content:
-          "Play, pause and seek recorded telemetry with synchronized plots and event markers.",
+        content: "Play, pause and seek recorded telemetry with synchronized plots and markers.",
       },
     ],
   }),
@@ -29,33 +28,70 @@ export const Route = createFileRoute("/replay")({
 });
 
 function Replay() {
-  const [sessions, setSessions] = useState<RecordedSession[]>([]);
+  const [runs, setRuns] = useState<RunSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [session, setSession] = useState<RecordedSession | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [error, setError] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const raf = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const list = listSessions();
-    setSessions(list);
-    setActiveId(list[0]?.meta.id ?? null);
+  const refresh = useCallback(async () => {
+    try {
+      const list = await listSessions();
+      setRuns(list);
+      setStatus(list.length ? "ready" : "empty");
+      setActiveId((current) => current ?? list[0]?.runId ?? null);
+      return list;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setStatus("error");
+      return [];
+    }
   }, []);
 
-  const session = sessions.find((s) => s.meta.id === activeId) ?? null;
-  const samples = session?.samples ?? [];
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!activeId) {
+      setSession(null);
+      return;
+    }
+    let cancelled = false;
+    setIdx(0);
+    setPlaying(false);
+    void loadSession(activeId)
+      .then((loadedSession) => !cancelled && setSession(loadedSession))
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : String(cause));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId]);
+
+  const samples = useMemo(() => session?.samples ?? [], [session]);
   const current = samples[Math.min(idx, samples.length - 1)] ?? null;
 
   useEffect(() => {
-    if (raf.current) clearInterval(raf.current);
+    if (ticker.current) clearInterval(ticker.current);
+    ticker.current = null;
     if (!playing || !samples.length) return;
-    raf.current = setInterval(() => {
-      setIdx((i) => (i >= samples.length - 1 ? 0 : i + 1));
-    }, 50 / speed);
+    // Saved runs are downsampled, so step the cursor at the run's own spacing.
+    const stepMs = samples.length > 1 ? samples[1]!.t - samples[0]!.t || 50 : 50;
+    ticker.current = setInterval(
+      () => setIdx((i) => (i >= samples.length - 1 ? 0 : i + 1)),
+      Math.max(16, stepMs / speed),
+    );
     return () => {
-      if (raf.current) clearInterval(raf.current);
+      if (ticker.current) clearInterval(ticker.current);
+      ticker.current = null;
     };
-  }, [playing, speed, samples.length]);
+  }, [playing, speed, samples]);
 
   const markers = useMemo(
     () =>
@@ -65,13 +101,32 @@ function Replay() {
     [session],
   );
 
-  if (!sessions.length) {
+  if (status === "loading") {
+    return (
+      <Panel title="Session replay">
+        <p className="text-sm text-muted-foreground">Loading saved runs from MongoDB…</p>
+      </Panel>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <Panel title="Session replay">
+        <p className="text-sm text-crit">Could not reach the run store: {error}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Runs are stored in MongoDB. Check that mongod is running, then seed the dataset with{" "}
+          <span className="num text-primary">npm run seed</span>.
+        </p>
+      </Panel>
+    );
+  }
+
+  if (status === "empty") {
     return (
       <Panel title="Session replay">
         <p className="text-sm text-muted-foreground">
-          No recorded runs yet. Connect the link and press{" "}
-          <span className="text-primary">Record run</span> in the top bar to store a session, then
-          come back here to replay it without hardware.
+          No saved runs yet. Press <span className="text-primary">Save run</span> in the top bar to
+          store the current session in MongoDB, then come back here to replay it.
         </p>
       </Panel>
     );
@@ -79,40 +134,36 @@ function Replay() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Recorded sessions">
+      <Panel title="Saved runs — stored in MongoDB">
         <ul className="grid gap-2 md:grid-cols-3">
-          {sessions.map((s) => (
-            <li key={s.meta.id}>
+          {runs.map((r) => (
+            <li key={r.runId}>
               <button
-                onClick={() => {
-                  setActiveId(s.meta.id);
-                  setIdx(0);
-                  setPlaying(false);
-                }}
+                onClick={() => setActiveId(r.runId)}
                 className={cn(
                   "panel w-full px-3 py-2 text-left",
-                  activeId === s.meta.id && "border-primary",
+                  activeId === r.runId && "border-primary",
                 )}
               >
-                <span className="num block text-xs text-foreground">{s.meta.id}</span>
+                <span className="num block text-xs text-foreground">{r.runId}</span>
                 <span className="label-xs block">
-                  {new Date(s.meta.startedAt).toLocaleString()} ·{" "}
-                  {(s.meta.durationMs / 1000).toFixed(1)} s · {s.samples.length} samples
+                  {new Date(r.startedAt).toLocaleString()} · {(r.durationMs / 1000).toFixed(1)} s ·{" "}
+                  {r.sampleCount} samples
                 </span>
                 <span className="label-xs block">
-                  protocol v{s.meta.protocolVersion} · loss {s.meta.lossPct.toFixed(2)}%
+                  {r.circuitId} · {r.driverName} · {r.compound}
                 </span>
               </button>
             </li>
           ))}
         </ul>
         <button
-          onClick={() => {
+          onClick={async () => {
             if (!activeId) return;
-            deleteSession(activeId);
-            const list = listSessions();
-            setSessions(list);
-            setActiveId(list[0]?.meta.id ?? null);
+            await deleteSession(activeId);
+            setActiveId(null);
+            const list = await refresh();
+            setActiveId(list[0]?.runId ?? null);
           }}
           className="label-xs mt-3 self-start rounded-sm border border-border px-3 py-1.5"
         >
@@ -147,6 +198,7 @@ function Replay() {
             value={idx}
             onChange={(e) => setIdx(Number(e.target.value))}
             className="min-w-48 flex-1 accent-primary"
+            aria-label="Seek within the run"
           />
           <span className="num text-xs">
             {current ? (current.t / 1000).toFixed(2) : "0.00"} s /{" "}
@@ -175,15 +227,10 @@ function Replay() {
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="ax longitudinal" value={current?.ax.toFixed(2)} unit="g" />
-        <Stat label="yaw rate" value={current?.yawRate.toFixed(1)} unit="°/s" />
-        <Stat label="speed" value={current?.speed.toFixed(1)} unit="km/h" />
-        <Stat
-          label="confidence"
-          value={current?.confidence.toFixed(0)}
-          unit="%"
-          kind="inferred"
-        />
+        <Stat label="Longitudinal accel" value={current?.ax.toFixed(2)} unit="g" />
+        <Stat label="Wheel slip" value={current?.wheelSlip.toFixed(2)} unit="%" kind="derived" />
+        <Stat label="Speed" value={current?.speed.toFixed(1)} unit="km/h" />
+        <Stat label="Confidence" value={current?.confidence.toFixed(0)} unit="%" kind="inferred" />
       </div>
 
       <Panel title="Events around cursor">

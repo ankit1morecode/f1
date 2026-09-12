@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // The API routes talk to MongoDB, and the driver needs raw TCP sockets plus
+  // Node built-ins that the default cloudflare-module preset cannot provide —
+  // bundling it there fails on `require("punycode/")` inside whatwg-url.
+  // Deploy this app to a Node host.
+  nitro: { preset: "node-server" },
 });

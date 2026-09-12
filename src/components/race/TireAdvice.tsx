@@ -7,7 +7,13 @@ export function TireAdvice({ strategy }: { strategy: StrategyState }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4 rounded-xl border border-primary/40 bg-primary/5 p-4">
-        <span className={cn("flex size-14 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-background", COLOR[strategy.finalCompound])}>
+        <span
+          className={cn(
+            "flex size-14 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold",
+            strategy.finalCompound === "HARD" ? "text-carbon-foreground" : "text-status-foreground",
+            COLOR[strategy.finalCompound],
+          )}
+        >
           {strategy.finalCompound[0]}
         </span>
         <div>
@@ -23,7 +29,13 @@ export function TireAdvice({ strategy }: { strategy: StrategyState }) {
             <span className={cn("size-2.5 rounded-full", COLOR[r.compound])} />
             <span className="font-display w-20 text-sm font-semibold">{r.compound}</span>
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-              <span className={cn("block h-full rounded-full", i === 0 ? "bg-primary" : "bg-muted-foreground/40")} style={{ width: `${r.score}%` }} />
+              <span
+                className={cn(
+                  "block h-full rounded-full",
+                  i === 0 ? "bg-primary" : "bg-muted-foreground/40",
+                )}
+                style={{ width: `${r.score}%` }}
+              />
             </span>
             <span className="num w-10 text-right text-xs">{r.score}</span>
           </li>

@@ -40,7 +40,10 @@ export function driverById(id: string): Driver {
 }
 
 /** Compound behaviour: starting grip and how fast it wears out. */
-export const COMPOUND_SPEC: Record<TireCompound, { startGrip: number; wearRate: number; label: string }> = {
+export const COMPOUND_SPEC: Record<
+  TireCompound,
+  { startGrip: number; wearRate: number; label: string }
+> = {
   SOFT: { startGrip: 100, wearRate: 1.9, label: "Best grip from new, wears out fastest" },
   MEDIUM: { startGrip: 95, wearRate: 1.1, label: "Balanced grip and life" },
   HARD: { startGrip: 90, wearRate: 0.6, label: "Less grip from new, lasts the longest" },

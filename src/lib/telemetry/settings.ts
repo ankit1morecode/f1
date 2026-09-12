@@ -11,10 +11,12 @@ export interface Settings {
   gripLow: number;
   /** a degrading trend only raises a warning below this grip score */
   degradingGrip: number;
-  /** yaw oscillation (Hz) that counts as instability */
-  yawOscWarn: number;
-  /** lateral accel (g) that must be present alongside yaw oscillation */
+  /** front-steering rate (deg/s) that counts as instability */
+  steerRateWarn: number;
+  /** lateral accel (g) that must be present alongside the steering activity */
   latAccelWarn: number;
+  /** wheel-speed disagreement (%) reported as slip */
+  wheelSlipWarn: number;
   /** vibration RMS (m/s²) reported as a surface note */
   vibrationInfo: number;
   /** confidence (%) below which sensor disagreement is raised */
@@ -30,6 +32,8 @@ export interface Settings {
   renderHz: number;
   /** default plot window (ms) */
   windowMs: number;
+  /** how often the live session state is shared/broadcast (ms) */
+  shareFrequencyMs: number;
   /** show the measured / calculated / estimated dots and notes */
   showProvenance: boolean;
 }
@@ -39,9 +43,10 @@ export const DEFAULT_SETTINGS: Settings = {
   gripMedium: 55,
   gripLow: 32,
   degradingGrip: 62,
-  yawOscWarn: 2.7,
-  latAccelWarn: 0.9,
-  vibrationInfo: 4.4,
+  steerRateWarn: 18,
+  latAccelWarn: 1.8,
+  wheelSlipWarn: 2,
+  vibrationInfo: 9,
   confidenceWarn: 55,
   speedUnit: "kmh",
   accelUnit: "g",
@@ -49,10 +54,11 @@ export const DEFAULT_SETTINGS: Settings = {
   decimals: 1,
   renderHz: 12,
   windowMs: 30000,
+  shareFrequencyMs: 500,
   showProvenance: true,
 };
 
-const KEY = "slipstreamx.settings.v1";
+const KEY = "slipstreamx.settings.v2";
 const listeners = new Set<() => void>();
 
 let current: Settings = load();
@@ -111,7 +117,6 @@ export function useSettings(): Settings {
   }, []);
   return s;
 }
-
 
 /* ---------- formatting helpers ---------- */
 

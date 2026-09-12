@@ -55,11 +55,10 @@ function Health() {
         </div>
       </Panel>
 
-
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Board temperature" value={health.boardTemp.toFixed(1)} unit="°C" />
         <Stat label="Supply voltage" value={health.supplyVoltage.toFixed(2)} unit="V" />
-        <Stat label="Sensor temperature" value={latest?.sensorTemp.toFixed(1)} unit="°C" />
+        <Stat label="Track humidity" value={latest?.humidity.toFixed(1)} unit="%" />
         <Stat label="Packet rate" value={connection.packetRate} unit="Hz" />
       </div>
 
@@ -73,13 +72,25 @@ function Health() {
             <Row k="Packets received" v={String(session.packets)} />
             <Row
               k="Protocol version"
-              v={connection.versionMismatch ? `MISMATCH (${PROTOCOL_VERSION})` : `v${PROTOCOL_VERSION} accepted`}
+              v={
+                connection.versionMismatch
+                  ? `MISMATCH (${PROTOCOL_VERSION})`
+                  : `v${PROTOCOL_VERSION} accepted`
+              }
             />
             <Row k="Software version" v={session.softwareVersion} />
+            <Row
+              k="Data source"
+              v={
+                connection.source === "measured"
+                  ? "Supplied dataset (MongoDB)"
+                  : "Behavioural model"
+              }
+            />
           </dl>
         </Panel>
-        <Panel title="Sensor temperature trend — last 60 s" kind="measured">
-          <Plot samples={win} channels={["ax", "az"]} height={170} />
+        <Panel title="Acceleration trend — last 60 s" kind="measured">
+          <Plot samples={win} channels={["ax", "ay"]} height={170} windowMs={60000} />
         </Panel>
       </div>
     </div>

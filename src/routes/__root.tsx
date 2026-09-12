@@ -13,7 +13,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/AppShell";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -89,8 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "SlipStream-X — Live Race Engineering" },
       {
         property: "og:description",
-        content:
-          "One car, four tires, 32 physical channels and one coherent live race session.",
+        content: "One car, four tires, 32 physical channels and one coherent live race session.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -140,6 +138,5 @@ function RootComponent() {
         <Outlet />
       </AppShell>
     </QueryClientProvider>
-
   );
 }

@@ -2,7 +2,6 @@ import type { Sample } from "@/lib/telemetry/types";
 import { fmt, useSettings } from "@/lib/telemetry/settings";
 import { cn } from "@/lib/utils";
 
-
 const STATE_CLASS: Record<string, string> = {
   HIGH: "text-ok",
   MEDIUM: "text-warn",
@@ -58,7 +57,9 @@ export function GripCore({ s, compact = false }: { s: Sample | null; compact?: b
           <span className={cn("num font-semibold", compact ? "text-3xl" : "text-4xl")}>
             {score === null ? "--" : fmt(score, settings)}
           </span>
-          <span className={cn("font-display text-xs", STATE_CLASS[s?.gripState ?? ""] ?? "text-stale")}>
+          <span
+            className={cn("font-display text-xs", STATE_CLASS[s?.gripState ?? ""] ?? "text-stale")}
+          >
             {s?.gripState ?? "NO DATA"}
           </span>
         </div>

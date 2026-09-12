@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { useSettings } from "@/lib/telemetry/settings";
 import { cn } from "@/lib/utils";
 
-
 export function Panel({
   title,
   kind,
@@ -17,12 +16,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section
-      className={cn(
-        "panel panel-accent flex flex-col p-5",
-        className,
-      )}
-    >
+    <section className={cn("panel panel-accent flex flex-col p-5", className)}>
       {(title || actions) && (
         <header className="mb-4 flex items-center justify-between gap-3 border-b border-border/50 pb-3">
           <div className="flex items-center gap-2">
@@ -51,7 +45,6 @@ export function KindDot({ kind }: { kind: "measured" | "derived" | "inferred" })
   return <span className={cn("size-2 rounded-full", cls)} title={KIND_HELP[kind]} />;
 }
 
-
 export function Stat({
   label,
   value,
@@ -67,11 +60,7 @@ export function Stat({
 }) {
   const missing = value === null || value === undefined || value === "";
   const color =
-    kind === "measured"
-      ? "text-measured"
-      : kind === "derived"
-        ? "text-derived"
-        : "text-inferred";
+    kind === "measured" ? "text-measured" : kind === "derived" ? "text-derived" : "text-inferred";
   return (
     <div className="panel px-4 py-3.5" title={KIND_HELP[kind]}>
       <div className="flex items-center gap-2">
@@ -92,4 +81,3 @@ export function Stat({
     </div>
   );
 }
-

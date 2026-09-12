@@ -20,6 +20,12 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StrategyRouteImport } from './routes/strategy'
 import { Route as TelemetryRouteImport } from './routes/telemetry'
 import { Route as TrackRouteImport } from './routes/track'
+import { Route as ApiDriverProfilesRouteImport } from './routes/api/driver-profiles'
+import { Route as ApiRunsRouteImport } from './routes/api/runs'
+import { Route as ApiImagekitAuthRouteImport } from './routes/api/imagekit/auth'
+import { Route as ApiRunsRunIdRouteImport } from './routes/api/runs.$runId'
+import { Route as ApiTelemetryFramesRouteImport } from './routes/api/telemetry/frames'
+import { Route as ApiTelemetryMetaRouteImport } from './routes/api/telemetry/meta'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +82,36 @@ const TrackRoute = TrackRouteImport.update({
   path: '/track',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDriverProfilesRoute = ApiDriverProfilesRouteImport.update({
+  id: '/api/driver-profiles',
+  path: '/api/driver-profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunsRoute = ApiRunsRouteImport.update({
+  id: '/api/runs',
+  path: '/api/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImagekitAuthRoute = ApiImagekitAuthRouteImport.update({
+  id: '/api/imagekit/auth',
+  path: '/api/imagekit/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunsRunIdRoute = ApiRunsRunIdRouteImport.update({
+  id: '/$runId',
+  path: '/$runId',
+  getParentRoute: () => ApiRunsRoute,
+} as any)
+const ApiTelemetryFramesRoute = ApiTelemetryFramesRouteImport.update({
+  id: '/api/telemetry/frames',
+  path: '/api/telemetry/frames',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelemetryMetaRoute = ApiTelemetryMetaRouteImport.update({
+  id: '/api/telemetry/meta',
+  path: '/api/telemetry/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +125,12 @@ export interface FileRoutesByFullPath {
   '/strategy': typeof StrategyRoute
   '/telemetry': typeof TelemetryRoute
   '/track': typeof TrackRoute
+  '/api/driver-profiles': typeof ApiDriverProfilesRoute
+  '/api/runs': typeof ApiRunsRouteWithChildren
+  '/api/imagekit/auth': typeof ApiImagekitAuthRoute
+  '/api/runs/$runId': typeof ApiRunsRunIdRoute
+  '/api/telemetry/frames': typeof ApiTelemetryFramesRoute
+  '/api/telemetry/meta': typeof ApiTelemetryMetaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +144,12 @@ export interface FileRoutesByTo {
   '/strategy': typeof StrategyRoute
   '/telemetry': typeof TelemetryRoute
   '/track': typeof TrackRoute
+  '/api/driver-profiles': typeof ApiDriverProfilesRoute
+  '/api/runs': typeof ApiRunsRouteWithChildren
+  '/api/imagekit/auth': typeof ApiImagekitAuthRoute
+  '/api/runs/$runId': typeof ApiRunsRunIdRoute
+  '/api/telemetry/frames': typeof ApiTelemetryFramesRoute
+  '/api/telemetry/meta': typeof ApiTelemetryMetaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +164,12 @@ export interface FileRoutesById {
   '/strategy': typeof StrategyRoute
   '/telemetry': typeof TelemetryRoute
   '/track': typeof TrackRoute
+  '/api/driver-profiles': typeof ApiDriverProfilesRoute
+  '/api/runs': typeof ApiRunsRouteWithChildren
+  '/api/imagekit/auth': typeof ApiImagekitAuthRoute
+  '/api/runs/$runId': typeof ApiRunsRunIdRoute
+  '/api/telemetry/frames': typeof ApiTelemetryFramesRoute
+  '/api/telemetry/meta': typeof ApiTelemetryMetaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +185,12 @@ export interface FileRouteTypes {
     | '/strategy'
     | '/telemetry'
     | '/track'
+    | '/api/driver-profiles'
+    | '/api/runs'
+    | '/api/imagekit/auth'
+    | '/api/runs/$runId'
+    | '/api/telemetry/frames'
+    | '/api/telemetry/meta'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +204,12 @@ export interface FileRouteTypes {
     | '/strategy'
     | '/telemetry'
     | '/track'
+    | '/api/driver-profiles'
+    | '/api/runs'
+    | '/api/imagekit/auth'
+    | '/api/runs/$runId'
+    | '/api/telemetry/frames'
+    | '/api/telemetry/meta'
   id:
     | '__root__'
     | '/'
@@ -157,6 +223,12 @@ export interface FileRouteTypes {
     | '/strategy'
     | '/telemetry'
     | '/track'
+    | '/api/driver-profiles'
+    | '/api/runs'
+    | '/api/imagekit/auth'
+    | '/api/runs/$runId'
+    | '/api/telemetry/frames'
+    | '/api/telemetry/meta'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +243,11 @@ export interface RootRouteChildren {
   StrategyRoute: typeof StrategyRoute
   TelemetryRoute: typeof TelemetryRoute
   TrackRoute: typeof TrackRoute
+  ApiDriverProfilesRoute: typeof ApiDriverProfilesRoute
+  ApiRunsRoute: typeof ApiRunsRouteWithChildren
+  ApiImagekitAuthRoute: typeof ApiImagekitAuthRoute
+  ApiTelemetryFramesRoute: typeof ApiTelemetryFramesRoute
+  ApiTelemetryMetaRoute: typeof ApiTelemetryMetaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,8 +329,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/driver-profiles': {
+      id: '/api/driver-profiles'
+      path: '/api/driver-profiles'
+      fullPath: '/api/driver-profiles'
+      preLoaderRoute: typeof ApiDriverProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/runs': {
+      id: '/api/runs'
+      path: '/api/runs'
+      fullPath: '/api/runs'
+      preLoaderRoute: typeof ApiRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/imagekit/auth': {
+      id: '/api/imagekit/auth'
+      path: '/api/imagekit/auth'
+      fullPath: '/api/imagekit/auth'
+      preLoaderRoute: typeof ApiImagekitAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/runs/$runId': {
+      id: '/api/runs/$runId'
+      path: '/$runId'
+      fullPath: '/api/runs/$runId'
+      preLoaderRoute: typeof ApiRunsRunIdRouteImport
+      parentRoute: typeof ApiRunsRoute
+    }
+    '/api/telemetry/frames': {
+      id: '/api/telemetry/frames'
+      path: '/api/telemetry/frames'
+      fullPath: '/api/telemetry/frames'
+      preLoaderRoute: typeof ApiTelemetryFramesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telemetry/meta': {
+      id: '/api/telemetry/meta'
+      path: '/api/telemetry/meta'
+      fullPath: '/api/telemetry/meta'
+      preLoaderRoute: typeof ApiTelemetryMetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface ApiRunsRouteChildren {
+  ApiRunsRunIdRoute: typeof ApiRunsRunIdRoute
+}
+
+const ApiRunsRouteChildren: ApiRunsRouteChildren = {
+  ApiRunsRunIdRoute: ApiRunsRunIdRoute,
+}
+
+const ApiRunsRouteWithChildren =
+  ApiRunsRoute._addFileChildren(ApiRunsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -267,6 +397,11 @@ const rootRouteChildren: RootRouteChildren = {
   StrategyRoute: StrategyRoute,
   TelemetryRoute: TelemetryRoute,
   TrackRoute: TrackRoute,
+  ApiDriverProfilesRoute: ApiDriverProfilesRoute,
+  ApiRunsRoute: ApiRunsRouteWithChildren,
+  ApiImagekitAuthRoute: ApiImagekitAuthRoute,
+  ApiTelemetryFramesRoute: ApiTelemetryFramesRoute,
+  ApiTelemetryMetaRoute: ApiTelemetryMetaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

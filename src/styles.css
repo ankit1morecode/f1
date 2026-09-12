@@ -45,6 +45,18 @@
   --color-stale: var(--stale);
   --color-carbon: var(--carbon);
   --color-carbon-soft: var(--carbon-soft);
+  --color-carbon-foreground: var(--carbon-foreground);
+  --color-status-foreground: var(--status-foreground);
+  --color-track-detail: var(--track-detail);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-sector-one: var(--sector-one);
+  --color-sector-two: var(--sector-two);
+  --color-sector-three: var(--sector-three);
 }
 
 :root {
@@ -79,6 +91,19 @@
   --stale: oklch(0.6 0.015 30);
   --carbon: oklch(0.19 0.01 25);
   --carbon-soft: oklch(0.29 0.012 25);
+  --carbon-foreground: oklch(0.96 0.006 40);
+  --status-foreground: oklch(0.17 0.008 25);
+  --track-detail: oklch(0.34 0.012 25);
+  --sector-one: oklch(0.56 0.21 27);
+  --sector-two: oklch(0.35 0.045 18);
+  --sector-three: oklch(0.55 0.018 30);
+  /* Per-series chart colours — one per plotted channel, not per provenance. */
+  --series-1: oklch(0.55 0.21 27);
+  --series-2: oklch(0.58 0.15 250);
+  --series-3: oklch(0.55 0.13 165);
+  --series-4: oklch(0.62 0.16 65);
+  --series-5: oklch(0.5 0.19 305);
+  --series-6: oklch(0.45 0.05 240);
 }
 
 .dark {
@@ -110,6 +135,18 @@
   --stale: oklch(0.6 0.015 30);
   --carbon: oklch(0.13 0.008 25);
   --carbon-soft: oklch(0.24 0.01 25);
+  --carbon-foreground: oklch(0.96 0.006 40);
+  --status-foreground: oklch(0.13 0.008 25);
+  --track-detail: oklch(0.7 0.015 30);
+  --sector-one: oklch(0.66 0.22 27);
+  --sector-two: oklch(0.78 0.07 18);
+  --sector-three: oklch(0.7 0.02 30);
+  --series-1: oklch(0.68 0.21 27);
+  --series-2: oklch(0.72 0.14 245);
+  --series-3: oklch(0.75 0.14 165);
+  --series-4: oklch(0.8 0.15 75);
+  --series-5: oklch(0.7 0.17 305);
+  --series-6: oklch(0.78 0.04 240);
 }
 
 @utility race-stage {
@@ -195,7 +232,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-
 @utility story-link {
   position: relative;
   display: inline-block;
@@ -250,4 +286,3 @@
   background: var(--color-border);
   border-radius: 999px;
 }
-

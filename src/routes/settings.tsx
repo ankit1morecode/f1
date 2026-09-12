@@ -98,28 +98,37 @@ function SettingsPage() {
             />
             <Slider
               label="Call it unstable above"
-              value={s.yawOscWarn}
-              min={0.5}
-              max={5}
-              step={0.1}
-              unit="Hz wobble"
-              onChange={(v) => updateSettings({ yawOscWarn: v })}
+              value={s.steerRateWarn}
+              min={2}
+              max={80}
+              step={1}
+              unit="°/s steering"
+              onChange={(v) => updateSettings({ steerRateWarn: v })}
             />
             <Slider
               label="…and only in corners harder than"
               value={s.latAccelWarn}
               min={0.2}
-              max={2}
-              step={0.05}
+              max={5}
+              step={0.1}
               unit="g sideways"
               onChange={(v) => updateSettings({ latAccelWarn: v })}
+            />
+            <Slider
+              label="Report wheel slip above"
+              value={s.wheelSlipWarn}
+              min={0.2}
+              max={15}
+              step={0.2}
+              unit="% wheel-speed gap"
+              onChange={(v) => updateSettings({ wheelSlipWarn: v })}
             />
             <Slider
               label="Note a rough surface above"
               value={s.vibrationInfo}
               min={1}
-              max={9}
-              step={0.1}
+              max={25}
+              step={0.5}
               unit="m/s² shake"
               onChange={(v) => updateSettings({ vibrationInfo: v })}
             />

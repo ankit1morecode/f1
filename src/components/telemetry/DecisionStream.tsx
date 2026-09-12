@@ -98,7 +98,9 @@ export function DecisionStream({
                 )}
               />
               <span className="flex-1">
-                <span className="block text-[0.8125rem] font-medium text-foreground">{e.title}</span>
+                <span className="block text-[0.8125rem] font-medium text-foreground">
+                  {e.title}
+                </span>
                 <span className="block text-xs leading-snug text-muted-foreground">{e.detail}</span>
               </span>
               <span className="label-xs shrink-0 pt-0.5">{e.category}</span>

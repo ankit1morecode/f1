@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plot } from "@/components/telemetry/Plot";
 import { DecisionStream } from "@/components/telemetry/DecisionStream";
 import { Panel, Stat } from "@/components/ui/Panel";
-import { listSessions, sessionToCsv } from "@/lib/telemetry/engine";
+import { listSessions, loadSession, sessionToCsv, type RunSummary } from "@/lib/telemetry/engine";
 import { useTelemetry } from "@/lib/telemetry/useTelemetry";
-import { CHANNELS, type ChannelKey, type RecordedSession, type Sample } from "@/lib/telemetry/types";
+import {
+  CHANNELS,
+  type ChannelKey,
+  type RecordedSession,
+  type Sample,
+} from "@/lib/telemetry/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/analysis")({
@@ -15,13 +20,12 @@ export const Route = createFileRoute("/analysis")({
       {
         name: "description",
         content:
-          "Multi-channel plots, event markers, cursor inspection, run comparison and documented CSV/JSON export for recorded SlipStream-X sessions.",
+          "Multi-channel plots, event markers, run comparison and documented CSV/JSON export for runs stored in MongoDB.",
       },
       { property: "og:title", content: "Analysis — SlipStream-X" },
       {
         property: "og:description",
-        content:
-          "Multi-channel plots, event markers, cursor inspection and engineering export for recorded runs.",
+        content: "Multi-channel plots, event markers and engineering export for recorded runs.",
       },
     ],
   }),
@@ -33,35 +37,81 @@ function download(name: string, content: string, type: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
+  // Firefox only starts the download for an anchor that is in the document, and
+  // revoking the URL in the same tick can cancel it.
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function AnalysisWorkspace() {
+const DEFAULT_CHANNELS: ChannelKey[] = ["tireTempFL", "tireTempFR", "tireTempRL", "tireTempRR"];
+
+function AnalysisWorkspace() {
   const live = useTelemetry(6);
-  const recorded = useMemo(() => listSessions(), []);
+  // Read after mount: the server has no access to the run list, so doing this
+  // during render would make the first client paint disagree with the SSR HTML.
+  const [recorded, setRecorded] = useState<RunSummary[]>([]);
+  const [listError, setListError] = useState<string | null>(null);
   const [sourceId, setSourceId] = useState<string>("LIVE");
-  const [channels, setChannels] = useState<ChannelKey[]>(["tireTempFL", "tireTempFR", "tireTempRL", "tireTempRR"]);
+  const [channels, setChannels] = useState<ChannelKey[]>(DEFAULT_CHANNELS);
   const [compareId, setCompareId] = useState<string>("");
+  const [loaded, setLoaded] = useState<Record<string, RecordedSession>>({});
 
-  const dataset: RecordedSession = useMemo(() => {
-    if (sourceId === "LIVE")
-      return { meta: live.session, samples: live.history, events: live.events };
-    return (
-      recorded.find((r) => r.meta.id === sourceId) ?? {
-        meta: live.session,
-        samples: [],
-        events: [],
-      }
-    );
-  }, [sourceId, live, recorded]);
+  useEffect(() => {
+    let cancelled = false;
+    listSessions()
+      .then((runs) => !cancelled && setRecorded(runs))
+      .catch((error: unknown) => {
+        if (!cancelled) setListError(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const compare = recorded.find((r) => r.meta.id === compareId) ?? null;
+  const ensureLoaded = useCallback(
+    (runId: string) => {
+      if (!runId || runId === "LIVE" || loaded[runId]) return;
+      void loadSession(runId)
+        .then((session) => {
+          if (session) setLoaded((prev) => ({ ...prev, [runId]: session }));
+        })
+        .catch(() => {
+          /* surfaced through the empty-plot state */
+        });
+    },
+    [loaded],
+  );
+
+  useEffect(() => ensureLoaded(sourceId), [sourceId, ensureLoaded]);
+  useEffect(() => ensureLoaded(compareId), [compareId, ensureLoaded]);
+
+  const liveDataset: RecordedSession = useMemo(
+    () => ({
+      meta: live.session,
+      samples: live.history,
+      events: live.events,
+      pitHistory: live.pit.history,
+    }),
+    [live],
+  );
+
+  const dataset: RecordedSession = useMemo(
+    () =>
+      sourceId === "LIVE"
+        ? liveDataset
+        : (loaded[sourceId] ?? { ...liveDataset, samples: [], events: [] }),
+    [sourceId, liveDataset, loaded],
+  );
+
+  const compare = compareId ? (loaded[compareId] ?? null) : null;
 
   const toggle = (k: ChannelKey) =>
     setChannels((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]));
 
   const stats = useMemo(() => summarize(dataset.samples), [dataset]);
+  const measured = live.connection.source === "measured";
 
   return (
     <div className="space-y-4">
@@ -74,8 +124,8 @@ export function AnalysisWorkspace() {
             options={[
               { value: "LIVE", label: `LIVE buffer · ${live.session.id}` },
               ...recorded.map((r) => ({
-                value: r.meta.id,
-                label: `${r.meta.id} · ${(r.meta.durationMs / 1000).toFixed(0)} s`,
+                value: r.runId,
+                label: `${r.runId} · ${(r.durationMs / 1000).toFixed(0)} s · ${r.circuitId}`,
               })),
             ]}
           />
@@ -85,14 +135,12 @@ export function AnalysisWorkspace() {
             onChange={setCompareId}
             options={[
               { value: "", label: "none" },
-              ...recorded.map((r) => ({ value: r.meta.id, label: r.meta.id })),
+              ...recorded.map((r) => ({ value: r.runId, label: r.runId })),
             ]}
           />
           <div className="flex gap-1.5">
             <button
-              onClick={() =>
-                download(`${dataset.meta.id}.csv`, sessionToCsv(dataset), "text/csv")
-              }
+              onClick={() => download(`${dataset.meta.id}.csv`, sessionToCsv(dataset), "text/csv")}
               className="label-xs rounded-sm bg-primary px-3 py-1.5 text-primary-foreground"
             >
               Export CSV
@@ -112,17 +160,36 @@ export function AnalysisWorkspace() {
           </div>
           <p className="label-xs ml-auto">
             software {dataset.meta.softwareVersion} · protocol v{dataset.meta.protocolVersion} ·{" "}
-            {dataset.samples.length} samples
+            {dataset.samples.length} samples · {dataset.meta.source}
           </p>
         </div>
+        {listError && (
+          <p className="mt-3 text-xs text-crit">
+            Could not reach the run store: {listError}. Runs are saved in MongoDB — check that it is
+            running.
+          </p>
+        )}
       </Panel>
 
-      <Panel title="Nine variable classes · 32 physical channels">
+      <Panel title="Measured channel groups">
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="APP cross-check" value={live.latest ? Math.abs(live.latest.app1-live.latest.app2).toFixed(2) : null} unit="% delta" />
-          <Stat label="APP consistency" value={live.latest && Math.abs(live.latest.app1-live.latest.app2) < 2 ? "CONSISTENT" : "CHECK"} />
-          <Stat label="Front Pitot" value={live.latest?.pitotFront.toFixed(2)} unit="kPa" />
-          <Stat label="Hind Pitot" value={live.latest?.pitotHind.toFixed(2)} unit="kPa" />
+          <Stat label="Vehicle speed" value={live.latest?.speed.toFixed(1)} unit="km/h" />
+          <Stat
+            label="Wheel slip"
+            value={live.latest?.wheelSlip.toFixed(2)}
+            unit="%"
+            kind="derived"
+          />
+          <Stat
+            label="Front wing pressure"
+            value={live.latest?.wingPressureFront.toFixed(2)}
+            unit="kPa"
+          />
+          <Stat
+            label="Rear wing pressure"
+            value={live.latest?.wingPressureRear.toFixed(2)}
+            unit="kPa"
+          />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {CHANNELS.map((c) => (
@@ -139,6 +206,11 @@ export function AnalysisWorkspace() {
             </button>
           ))}
         </div>
+        {measured && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Live channels are frames of the supplied Silverstone dataset, replayed from MongoDB.
+          </p>
+        )}
       </Panel>
 
       <Panel title={`Multi-channel plot — ${dataset.meta.id}`}>
@@ -177,8 +249,7 @@ export function AnalysisWorkspace() {
 }
 
 function summarize(samples: Sample[]) {
-  if (!samples.length)
-    return { meanGrip: null, minGrip: null, peakAy: null, peakVib: null };
+  if (!samples.length) return { meanGrip: null, minGrip: null, peakAy: null, peakVib: null };
   const grips = samples.map((s) => s.gripScore);
   return {
     meanGrip: (grips.reduce((a, b) => a + b, 0) / grips.length).toFixed(1),

@@ -15,7 +15,6 @@ import {
   useSettings,
 } from "@/lib/telemetry/settings";
 
-
 export const Route = createFileRoute("/overview")({
   head: () => ({
     meta: [
@@ -63,7 +62,7 @@ function Overview() {
           value={fmtAccel(latest?.ay, settings)}
           unit={accelLabel(settings)}
         />
-        <Stat label="Yaw rate" value={fmt(latest?.yawRate, settings)} unit="°/s" />
+        <Stat label="Wheel slip" value={fmt(latest?.wheelSlip, settings)} unit="%" kind="derived" />
         <Stat
           label="Vibration RMS"
           value={fmt(latest?.vibrationRms, settings, 1)}
@@ -71,7 +70,6 @@ function Overview() {
           kind="derived"
         />
       </div>
-
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
         <Panel
@@ -83,7 +81,12 @@ function Overview() {
             </Link>
           }
         >
-          <Plot samples={win} channels={["gripScore", "ay"]} height={170} />
+          <Plot
+            samples={win}
+            channels={["gripScore", "ay"]}
+            height={170}
+            windowMs={settings.windowMs}
+          />
         </Panel>
 
         <Panel title="Session context">
@@ -95,7 +98,10 @@ function Overview() {
             <Row k="Packet loss" v={`${session.lossPct.toFixed(2)} %`} />
             <Row k="Transport" v={connection.status} />
             <Row k="Protocol" v={session.protocolVersion} />
-            <Row k="Board temp" v={`${fmtTemp(health.boardTemp, settings)} ${tempLabel(settings)}`} />
+            <Row
+              k="Board temp"
+              v={`${fmtTemp(health.boardTemp, settings)} ${tempLabel(settings)}`}
+            />
           </dl>
         </Panel>
       </div>
