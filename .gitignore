@@ -38,3 +38,4 @@ dist-ssr
 
 # Large source datasets (seeded into MongoDB instead)
 data/*.csv
+.env*

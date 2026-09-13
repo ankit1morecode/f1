@@ -12,6 +12,21 @@ import {
 const MAX_COUNT = 3000;
 const DEFAULT_COUNT = 1440; // 60 s at 24 Hz
 
+/**
+ * The frame total is fixed for a given seed, so it is resolved once per warm
+ * instance instead of costing a round trip on every chunk request.
+ */
+let frameCountCache: number | null = null;
+
+async function cachedFrameCount(
+  collection: Awaited<ReturnType<typeof framesCollection>>,
+): Promise<number> {
+  if (frameCountCache === null) {
+    frameCountCache = await collection.estimatedDocumentCount();
+  }
+  return frameCountCache;
+}
+
 function intParam(value: string | null, fallback: number): number {
   if (value === null) return fallback;
   const parsed = Number.parseInt(value, 10);
@@ -43,7 +58,7 @@ export const Route = createFileRoute("/api/telemetry/frames")({
               .find({ _id: { $gte: from, $lt: from + count } })
               .sort({ _id: 1 })
               .toArray(),
-            collection.estimatedDocumentCount(),
+            cachedFrameCount(collection),
           ]);
 
           if (!frameCount) {
@@ -66,8 +81,10 @@ export const Route = createFileRoute("/api/telemetry/frames")({
           };
 
           return Response.json(payload, {
-            // Frames are immutable once seeded, so chunks cache hard.
-            headers: { "cache-control": "public, max-age=3600, immutable" },
+            // Chunk URLs carry the seed version (`&v=`), so a given URL can never
+            // return different bytes — safe to cache for a year at the edge. A
+            // reseed changes the version and therefore the URL.
+            headers: { "cache-control": "public, max-age=31536000, immutable" },
           });
         } catch (error) {
           console.error(error);
