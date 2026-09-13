@@ -9,6 +9,7 @@
  *   --uri    <uri>   Mongo connection URI   (default: $MONGODB_URI or localhost)
  *   --db     <name>  Database name          (default: $MONGODB_DB or slipstream-x)
  *   --drop           Empty the target collections before inserting
+ *   --instability N  Write N scripted instability episodes per lap (default 0)
  *
  * The frame CSV is ~27 MB / 104 680 rows, so it is read line by line and pushed
  * in bulk batches rather than parsed into one array.
@@ -297,6 +298,114 @@ async function buildLapSummaries(db, drop) {
   return laps.countDocuments();
 }
 
+/**
+ * Writes instability episodes into the seeded frames.
+ *
+ * The supplied lap is a clean one: steering moves at most ~1° per 0.1 s and the
+ * four wheel speeds never disagree, so the stability and slip detectors have
+ * nothing to fire on and the race-engineer feed only ever shows lap markers.
+ * Each episode is a scripted snap-oversteer-and-catch lasting `EPISODE_SECONDS`:
+ *
+ *   rear wheels break traction  -> wheel-speed disagreement    (WARNING slip)
+ *   lateral load spikes         -> grip model drops             (WARNING grip)
+ *   driver countersteers        -> high steering rate + lateral (CRITICAL)
+ *   car is caught, load falls   -> grip climbs back             (ADVISORY)
+ *
+ * A sine envelope keeps entry and exit continuous, so nothing steps.
+ * Touched frames are tagged `injected: "instability"` and the episode list is
+ * recorded on the meta document, so this is always distinguishable from the
+ * recorded measurements. Reseeding without --instability restores clean data.
+ */
+const EPISODE_SECONDS = 3;
+
+async function injectInstability(db, perLap, samplingHz) {
+  const frames = db.collection("silverstone_frames");
+  const allTurns = await db
+    .collection("silverstone_turns")
+    .find({})
+    .sort({ distanceM: 1 })
+    .toArray();
+  if (!allTurns.length) return [];
+
+  // Split the lap into equal segments and take the most severe turn in each,
+  // rather than the N most severe overall — those cluster in one part of the
+  // circuit, which would leave the first minute of a demo with an empty feed.
+  const lapLength = allTurns[allTurns.length - 1].distanceM;
+  const turns = [];
+  for (let segment = 0; segment < perLap; segment++) {
+    const from = (lapLength * segment) / perLap;
+    const to = (lapLength * (segment + 1)) / perLap;
+    const inSegment = allTurns.filter((t) => t.distanceM >= from && t.distanceM < to);
+    if (!inSegment.length) continue;
+    turns.push(inSegment.reduce((a, b) => (b.severity > a.severity ? b : a)));
+  }
+  if (!turns.length) return [];
+
+  const laps = await frames.distinct("lap");
+  const length = Math.round(EPISODE_SECONDS * samplingHz);
+  const writes = [];
+  const placed = [];
+
+  for (const lap of laps) {
+    for (const turn of turns) {
+      // Start the slide just after turn-in, where a real one would begin.
+      const anchor = await frames.findOne(
+        { lap, distanceM: { $gte: turn.distanceM } },
+        { sort: { distanceM: 1 }, projection: { _id: 1 } },
+      );
+      if (!anchor) continue;
+
+      const window = await frames
+        .find({ _id: { $gte: anchor._id, $lt: anchor._id + length } })
+        .sort({ _id: 1 })
+        .toArray();
+      if (window.length < length / 2) continue;
+
+      window.forEach((doc, i) => {
+        const u = i / (window.length - 1);
+        const envelope = Math.sin(Math.PI * u); // 0 -> 1 -> 0
+        const sign = doc.latAccelG >= 0 ? 1 : -1;
+
+        // Countersteer: ~2.5 oscillations across the episode. The amplitude is
+        // what drives steering rate past the instability threshold.
+        const counterSteer = 9 * envelope * Math.sin(2 * Math.PI * 2.5 * u);
+        // Load rises in magnitude, keeping the corner's own direction.
+        const lat = sign * (Math.abs(doc.latAccelG) + 0.36 * envelope);
+        const spin = 1 + 0.15 * envelope; // rear wheels overspeed
+
+        writes.push({
+          updateOne: {
+            filter: { _id: doc._id },
+            update: {
+              $set: {
+                steerFrontDeg: Number((doc.steerFrontDeg + counterSteer).toFixed(3)),
+                latAccelG: Number(lat.toFixed(4)),
+                speedKmh: Number((doc.speedKmh * (1 - 0.03 * envelope)).toFixed(3)),
+                "wheelRpm.RL": Number((doc.wheelRpm.RL * spin).toFixed(1)),
+                "wheelRpm.RR": Number((doc.wheelRpm.RR * spin).toFixed(1)),
+                injected: "instability",
+              },
+            },
+          },
+        });
+      });
+
+      placed.push({
+        lap,
+        turn: turn.number,
+        distanceM: turn.distanceM,
+        startSeq: anchor._id,
+        frames: window.length,
+      });
+    }
+  }
+
+  for (let i = 0; i < writes.length; i += 1000) {
+    await frames.bulkWrite(writes.slice(i, i + 1000), { ordered: false });
+  }
+  return placed;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const uri = args.uri ?? process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017";
@@ -322,6 +431,14 @@ async function main() {
     const stats = await seedFrames(db, framesCsv, args.drop);
     const lapCount = Math.round(stats.seq / stats.lapFrameCount);
 
+    const perLap = Math.max(0, Number(args.instability ?? 0) || 0);
+    let episodes = [];
+    if (perLap > 0) {
+      episodes = await injectInstability(db, perLap, stats.samplingHz);
+      console.log(`  events  ${episodes.length} instability episodes written (${perLap}/lap)`);
+    }
+
+    // Built after injection so the rollups describe what is actually stored.
     const lapSummaries = await buildLapSummaries(db, args.drop);
     console.log(`  laps    ${lapSummaries} summaries built`);
 
@@ -343,6 +460,10 @@ async function main() {
         frames: path.basename(framesCsv),
         turns: path.basename(turnsCsv),
       },
+      // Scripted episodes written over the recorded measurements, if any.
+      instabilityEpisodes: episodes.length,
+      instabilityPerLap: perLap,
+      instabilityTurns: [...new Set(episodes.map((e) => e.turn))].sort((a, b) => a - b),
       seededAt: new Date(),
     };
     await db.collection("silverstone_meta").replaceOne({ _id: meta._id }, meta, { upsert: true });

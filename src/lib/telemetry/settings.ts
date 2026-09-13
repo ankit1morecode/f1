@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   steerRateWarn: 18,
   latAccelWarn: 1.8,
   wheelSlipWarn: 2,
-  vibrationInfo: 9,
+  vibrationInfo: 11,
   confidenceWarn: 55,
   speedUnit: "kmh",
   accelUnit: "g",

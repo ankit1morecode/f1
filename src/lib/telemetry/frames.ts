@@ -210,6 +210,10 @@ export interface TelemetryMetaPayload {
   turns: TurnInfo[];
   laps: LapInfo[];
   source: { frames: string; turns: string };
+  /** Changes on every reseed; used to bust cached frame chunks. */
+  version: string;
+  /** Scripted instability episodes written over the recording, if any. */
+  instabilityEpisodes: number;
 }
 
 export interface FrameChunkPayload {

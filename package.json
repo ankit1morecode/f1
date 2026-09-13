@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "seed": "node scripts/seed-mongo.mjs",
     "seed:reset": "node scripts/seed-mongo.mjs --drop",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:demo": "node scripts/seed-mongo.mjs --drop --instability 3"
   },
   "overrides": {
     "rolldown": "1.2.1"

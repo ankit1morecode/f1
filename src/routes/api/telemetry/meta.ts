@@ -48,6 +48,9 @@ export const Route = createFileRoute("/api/telemetry/meta")({
             gpsBounds: meta.gpsBounds,
             racingLine: meta.racingLine,
             source: meta.source,
+            version: String(meta.seededAt?.getTime?.() ?? meta.seededAt ?? "0"),
+            instabilityEpisodes:
+              (meta as { instabilityEpisodes?: number }).instabilityEpisodes ?? 0,
             turns: turnDocs.map((t): TurnInfo => ({
               number: t.number,
               turn: t.turn,
@@ -74,7 +77,8 @@ export const Route = createFileRoute("/api/telemetry/meta")({
           };
 
           return Response.json(payload, {
-            headers: { "cache-control": "public, max-age=300" },
+            // Small, and it carries the version token that busts frame caches.
+            headers: { "cache-control": "no-cache" },
           });
         } catch (error) {
           console.error(error);

@@ -51,6 +51,8 @@ const SIMULATED_HZ = 20;
 /** Live history window, in seconds. */
 const HISTORY_SECONDS = 120;
 const EVENT_LIMIT = 120;
+/** Minimum gap between two events sharing the same code. */
+const EVENT_DEDUPE_MS = 4000;
 const CORNERS: Corner[] = ["FL", "FR", "RL", "RR"];
 
 /** Samples kept when a run is written to MongoDB. */
@@ -607,8 +609,12 @@ class TelemetryEngine {
     detail: string,
   ) {
     const t = this.latest?.t ?? this.sessionMs;
-    const last = this.events[0];
-    if (last && last.code === code && t - last.t < 3000) return;
+    // Rate-limit per code by finding the most recent event *of this code*.
+    // Comparing only against events[0] meant two codes firing alternately each
+    // saw the other at the head of the list, so neither was ever suppressed and
+    // both repeated every tick.
+    const last = this.events.find((e) => e.code === code);
+    if (last && t - last.t < EVENT_DEDUPE_MS) return;
     this.events = [
       { id: id("EV"), t, wallClock: Date.now(), severity, category, code, title, detail },
       ...this.events,

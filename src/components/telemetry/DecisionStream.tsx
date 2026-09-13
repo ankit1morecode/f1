@@ -9,6 +9,9 @@ const SEV_CLASS: Record<Severity, string> = {
   CRITICAL: "border-crit text-crit",
 };
 
+/** How long an event stays the headline in the banner. */
+const ACTIVE_WINDOW_MS = 8000;
+
 const SEVERITIES: Severity[] = ["INFO", "ADVISORY", "WARNING", "CRITICAL"];
 
 const SEV_LABEL: Record<Severity, string> = {
@@ -36,8 +39,14 @@ export function DecisionStream({
 }) {
   const [minSev, setMinSev] = useState<Severity>("INFO");
   const filtered = events.filter((e) => SEVERITY_RANK[e.severity] >= SEVERITY_RANK[minSev]);
-  const active = events.length
-    ? events.reduce((a, b) => (SEVERITY_RANK[b.severity] > SEVERITY_RANK[a.severity] ? b : a))
+  // Highest severity within the last few seconds, not of all time: reducing over
+  // the whole buffer pinned the first CRITICAL to the banner for the rest of the
+  // session, long after the car had been caught.
+  const newest = events[0]?.t ?? 0;
+  const recent = events.filter((e) => newest - e.t < ACTIVE_WINDOW_MS);
+  const pool = recent.length ? recent : events.slice(0, 1);
+  const active = pool.length
+    ? pool.reduce((a, b) => (SEVERITY_RANK[b.severity] > SEVERITY_RANK[a.severity] ? b : a))
     : null;
 
   return (

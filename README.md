@@ -40,6 +40,30 @@ Corrected accelerations are held inside a ±6 g envelope: the source speed trace
 has occasional single-sample discontinuities that k² would otherwise turn into
 10 g spikes.
 
+### Instability episodes (demo data)
+
+The supplied lap is a clean one: steering moves at most ~1° per 0.1 s and the four
+wheel speeds never disagree, so the stability and slip detectors have nothing to
+fire on and the race-engineer feed only ever shows lap markers.
+
+`npm run seed:demo` writes three scripted snap-oversteer episodes per lap — one in
+each third of the circuit, at the most severe turn in that third (turns 3, 11 and
+15), landing about 13 s, 56 s and 73 s into each lap. Each is a 3-second
+sine-enveloped event, so entry and exit stay continuous:
+
+| phase | signal written | event raised |
+| --- | --- | --- |
+| rear wheels break traction | `wheelRpm.RL/RR` +15 % | Wheel slip — **warning** |
+| load spikes | `latAccelG` +0.36 g | grip model falls |
+| driver countersteers | `steerFrontDeg` ±9°, 2.5 cycles | Instability — **critical** |
+| car is caught | envelope decays | Grip degrading — **warning** |
+| load returns to normal | — | Grip recovering — **advisory** |
+
+Every touched frame is tagged `injected: "instability"`, and the episode count and
+turns are recorded on the meta document, so injected frames are always
+distinguishable from the recorded measurements. `npm run seed` (without
+`--instability`) restores clean data.
+
 ### Collections
 
 | Collection | Documents | Purpose |
@@ -79,6 +103,7 @@ the same thing. Re-seeding never touches the `runs` collection.
 | `npm run dev` | Vite dev server |
 | `npm run seed` | Ingest the CSVs into MongoDB |
 | `npm run seed:reset` | Re-ingest, dropping existing frames first |
+| `npm run seed:demo` | Re-ingest with 3 instability episodes per lap |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint + Prettier |
 | `npm run build` | Production build (Nitro, `node-server` preset) |

@@ -85,7 +85,12 @@ class FrameSource {
     const from = index * CHUNK_FRAMES;
     const request = (async () => {
       try {
-        const response = await fetch(`/api/telemetry/frames?from=${from}&count=${CHUNK_FRAMES}`);
+        // Chunks are served `immutable`, so the seed version has to be part of
+        // the URL — otherwise a reseed keeps serving stale frames for an hour.
+        const version = this.meta?.version ?? "0";
+        const response = await fetch(
+          `/api/telemetry/frames?from=${from}&count=${CHUNK_FRAMES}&v=${version}`,
+        );
         if (!response.ok) throw new Error(`Frame request failed (${response.status})`);
         const payload = (await response.json()) as FrameChunkPayload;
         this.chunks.set(index, payload.frames);
