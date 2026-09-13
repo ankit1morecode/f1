@@ -146,10 +146,54 @@ path, so uploads go to `slipstream_x/drivers`.
 
 ## Deployment
 
-The build targets Nitro's `node-server` preset, pinned in `vite.config.ts`. The
-MongoDB driver needs raw TCP sockets and Node built-ins, so this app **cannot**
-run on Cloudflare Workers — the default `cloudflare-module` preset fails to
-bundle `whatwg-url`. Deploy to a Node host and set `MONGODB_URI`.
+The Nitro target is chosen in `vite.config.ts`: `NITRO_PRESET` wins if set,
+otherwise `vercel` when Vercel's `VERCEL=1` is present, otherwise `node-server`
+for local builds. It must never fall back to Cloudflare Workers — the MongoDB
+driver needs raw TCP sockets and Node built-ins, and the `cloudflare-module`
+preset fails to bundle `whatwg-url`.
+
+Nothing built is committed. Vercel builds from source and Nitro emits Build
+Output API v3 into `.vercel/output`, which Vercel picks up automatically;
+`.output` and `.vercel` are both gitignored.
+
+### Vercel
+
+1. **Host the database first.** This is the blocker: a deployed function cannot
+   reach a `127.0.0.1` MongoDB. Create a free MongoDB Atlas cluster, allow access
+   from Vercel (Atlas → Network Access → `0.0.0.0/0`, or Vercel's egress IPs on a
+   paid plan), then seed it from your machine:
+
+   ```sh
+   node scripts/seed-mongo.mjs --drop --instability 3      --uri "mongodb+srv://<user>:<pass>@<cluster>.mongodb.net" --db slipstream-x
+   ```
+
+   That uploads ~70 MB, so it takes a few minutes. Everything the app serves
+   lives in Mongo — without this step every screen shows "Dataset unavailable".
+
+2. **Import the repo** at vercel.com/new. `vercel.json` sets the build and
+   install commands; leave the framework preset as "Other".
+
+3. **Set environment variables** (Project → Settings → Environment Variables),
+   for Production *and* Preview:
+
+   | Variable | Value |
+   | --- | --- |
+   | `MONGODB_URI` | your Atlas `mongodb+srv://...` string |
+   | `MONGODB_DB` | `slipstream-x` |
+   | `IMAGEKIT_PUBLIC_KEY` | from the ImageKit dashboard |
+   | `IMAGEKIT_PRIVATE_KEY` | from the ImageKit dashboard — **never** prefix with `VITE_` |
+   | `IMAGEKIT_URL_ENDPOINT` | `https://ik.imagekit.io/<your id>` |
+
+4. **Deploy.** Verify with `/api/telemetry/meta` — it should return the track
+   metadata, not a 503.
+
+The serverless function holds the Mongo client on `globalThis` so warm
+invocations reuse the pool rather than opening a new one per request.
+
+### Any other Node host
+
+`npm run build` produces `.output/`; run `node .output/server/index.mjs` with the
+same environment variables set.
 
 ## Built with
 
